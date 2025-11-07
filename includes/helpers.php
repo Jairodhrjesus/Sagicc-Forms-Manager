@@ -163,11 +163,14 @@ function sagicc_forms_get_templates() {
     <textarea id="base-mensaje" name="mensaje" rows="4"></textarea>
 </div>
 <button type="submit" class="sagicc-btn-primary">Enviar</button>',
-        'css'         => '.field { margin-bottom: 16px; }
-.field label { display:block; font-weight:600; margin-bottom:6px; }
+            'css'         => 'body { font-family:\"Nunito Sans\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif; }
+.field { margin-bottom: 16px; }
+.field label { display:block; font-weight:600; margin-bottom:6px; color:#202124; }
 .field input,
-.field textarea { width:100%; padding:10px; border:1px solid #ccd0d4; border-radius:6px; font-size:15px; }
-.sagicc-btn-primary { background:#2a3491; color:#fff; border:none; padding:12px 28px; border-radius:24px; cursor:pointer; }',
+.field textarea { width:100%; padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:15px; background:#fff; color:#202124; }
+.field input:focus,
+.field textarea:focus { outline:none; border-color:#5f6368; box-shadow:0 0 0 1px #5f6368; }
+.sagicc-btn-primary { background:#5f6368; color:#fff; border:none; padding:12px 28px; border-radius:24px; cursor:pointer; font-weight:600; }',
             'js'          => '',
         ),
         'pqrs'      => array(
@@ -206,13 +209,15 @@ function sagicc_forms_get_templates() {
     <textarea id="pqrs-mensaje" name="mensaje" rows="5" required></textarea>
 </div>
 <button type="submit" class="sagicc-btn-primary">Enviar solicitud</button>',
-            'css'         => '.row { display:flex; gap:12px; flex-wrap:wrap; }
+            'css'         => 'body { font-family:\"Nunito Sans\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif; }
+.row { display:flex; gap:12px; flex-wrap:wrap; }
 .field { flex:1; min-width:220px; margin-bottom:14px; }
-.field label { display:block; font-size:14px; font-weight:600; margin-bottom:4px; }
+.field label { display:block; font-size:14px; font-weight:600; margin-bottom:4px; color:#202124; }
 .field input,
 .field textarea,
-.field select { width:100%; padding:10px; border:1px solid #d6dae0; border-radius:4px; background:#fff; }
-.sagicc-btn-primary { background:#0b5fff; color:#fff; border:none; padding:12px 24px; border-radius:4px; cursor:pointer; font-weight:600; }',
+.field select { width:100%; padding:10px 12px; border:1px solid #d6dae0; border-radius:8px; background:#fff; color:#202124; }
+.field select { background:#fff; }
+.sagicc-btn-primary { background:#5f6368; color:#fff; border:none; padding:12px 24px; border-radius:24px; cursor:pointer; font-weight:600; }',
             'js'          => '',
         ),
         'marketing' => array(
@@ -254,13 +259,14 @@ function sagicc_forms_get_templates() {
     </label>
 </div>
 <button type="submit" class="sagicc-btn-primary">Quiero m&aacute;s informaci&oacute;n</button>',
-            'css'         => '.field { margin-bottom:15px; }
-.field label { display:block; font-size:14px; margin-bottom:6px; font-weight:500; }
+            'css'         => 'body { font-family:\"Nunito Sans\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif; }
+.field { margin-bottom:15px; }
+.field label { display:block; font-size:14px; margin-bottom:6px; font-weight:500; color:#202124; }
 .field input,
 .field textarea,
-.field select { width:100%; padding:11px; border:1px solid #cfd3d7; border-radius:8px; background:#fefefe; box-shadow:0 1px 2px rgba(15,23,42,.06) inset; }
-.consent { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:500; }
-.sagicc-btn-primary { width:100%; background-image:linear-gradient(135deg, #ff6b6b, #f06595); color:#fff; border:none; padding:14px; border-radius:30px; font-size:15px; font-weight:600; cursor:pointer; letter-spacing:.5px; }',
+.field select { width:100%; padding:11px 13px; border:1px solid #cfd3d7; border-radius:8px; background:#fff; color:#202124; }
+.consent { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:500; color:#202124; }
+.sagicc-btn-primary { width:100%; background:#5f6368; color:#fff; border:none; padding:14px; border-radius:30px; font-size:15px; font-weight:600; cursor:pointer; letter-spacing:.5px; }',
             'js'          => '',
         ),
     );
