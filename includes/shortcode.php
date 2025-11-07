@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Shortcode that renders Sagicc forms on the front-end.
  *
@@ -80,6 +80,13 @@ function sagicc_form_shortcode( $atts ) {
 
         <input type="hidden" name="_sagicc_form_id" value="<?php echo esc_attr( $form_id ); ?>">
         <input type="hidden" name="_sagicc_wp_nonce" value="<?php echo esc_attr( $nonce ); ?>">
+        <?php
+        $utm_fields = array( 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm_id' );
+        foreach ( $utm_fields as $utm_field ) :
+            $utm_value = isset( $_GET[ $utm_field ] ) ? sanitize_text_field( wp_unslash( $_GET[ $utm_field ] ) ) : '';
+            ?>
+            <input type="hidden" name="<?php echo esc_attr( $utm_field ); ?>" value="<?php echo esc_attr( $utm_value ); ?>">
+        <?php endforeach; ?>
 
         <?php
         // HTML que el usuario pego (interno del formulario).
@@ -118,6 +125,7 @@ function sagicc_form_shortcode( $atts ) {
         const captchaHashInput = document.getElementById('<?php echo esc_js( $captcha_dom ); ?>-hash');
         const captchaQuestionNode = form ? form.querySelector('[data-sagicc-captcha-question]') : null;
         const securityEndpoint = '<?php echo esc_url_raw( $security_endpoint ); ?>';
+        const utmFields = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm_id'];
 
         if (!form) return;
 
@@ -170,6 +178,22 @@ function sagicc_form_shortcode( $atts ) {
         }
 
         refreshSecurityFields();
+        function populateUtmFields() {
+            if (!form || typeof URLSearchParams === 'undefined') {
+                return;
+            }
+            const params = new URLSearchParams(window.location.search || '');
+            utmFields.forEach(function(field){
+                const input = form.querySelector('[name="' + field + '"]');
+                if (!input) {
+                    return;
+                }
+                if (params.has(field)) {
+                    input.value = params.get(field) || '';
+                }
+            });
+        }
+        populateUtmFields();
 
         function sendForm() {
             const fd = new FormData(form);
@@ -202,7 +226,7 @@ function sagicc_form_shortcode( $atts ) {
             refreshSecurityFields().then(function(){
                 if (captchaType === 'recaptcha_v3' && recaptchaSiteKey) {
                     if (typeof grecaptcha === 'undefined' || !grecaptcha.execute) {
-                        setMessage('Error: reCAPTCHA no est� disponible.', false);
+                        setMessage('Error: reCAPTCHA no está disponible.', false);
                         return;
                     }
                     grecaptcha.ready(function(){
