@@ -137,6 +137,136 @@ function sagicc_forms_find_missing_required_fields( $html ) {
 }
 
 /**
+ * Catalog of built-in visual templates for guided mode.
+ *
+ * @return array
+ */
+function sagicc_forms_get_templates() {
+    return array(
+        'base'      => array(
+            'name'        => 'Formulario Base',
+            'description' => 'Campos esenciales para contacto general.',
+            'html'        => '<div class="field">
+    <label for="base-nombre">Nombre completo*</label>
+    <input type="text" id="base-nombre" name="nombre" required>
+</div>
+<div class="field">
+    <label for="base-email">Correo*</label>
+    <input type="email" id="base-email" name="email" required>
+</div>
+<div class="field">
+    <label for="base-telefono">Tel&eacute;fono*</label>
+    <input type="text" id="base-telefono" name="telefono" required>
+</div>
+<div class="field">
+    <label for="base-mensaje">Mensaje</label>
+    <textarea id="base-mensaje" name="mensaje" rows="4"></textarea>
+</div>
+<button type="submit" class="sagicc-btn-primary">Enviar</button>',
+        'css'         => '.field { margin-bottom: 16px; }
+.field label { display:block; font-weight:600; margin-bottom:6px; }
+.field input,
+.field textarea { width:100%; padding:10px; border:1px solid #ccd0d4; border-radius:6px; font-size:15px; }
+.sagicc-btn-primary { background:#2a3491; color:#fff; border:none; padding:12px 28px; border-radius:24px; cursor:pointer; }',
+            'js'          => '',
+        ),
+        'pqrs'      => array(
+            'name'        => 'Formulario PQRS',
+            'description' => 'Optimizado para peticiones, quejas, reclamos o sugerencias.',
+            'html'        => '<div class="row">
+    <div class="field">
+        <label for="pqrs-nombre">Nombre*</label>
+        <input type="text" id="pqrs-nombre" name="nombre" required>
+    </div>
+    <div class="field">
+        <label for="pqrs-apellido">Apellido*</label>
+        <input type="text" id="pqrs-apellido" name="apellido" required>
+    </div>
+</div>
+<div class="field">
+    <label for="pqrs-email">Correo*</label>
+    <input type="email" id="pqrs-email" name="email" required>
+</div>
+<div class="field">
+    <label for="pqrs-telefono">Tel&eacute;fono*</label>
+    <input type="text" id="pqrs-telefono" name="telefono" required>
+</div>
+<div class="field">
+    <label for="pqrs-tipo">Tipo de solicitud*</label>
+    <select id="pqrs-tipo" name="tipo_solicitud" required>
+        <option value="">Selecciona una opci&oacute;n</option>
+        <option value="peticion">Petici&oacute;n</option>
+        <option value="queja">Queja</option>
+        <option value="reclamo">Reclamo</option>
+        <option value="sugerencia">Sugerencia</option>
+    </select>
+</div>
+<div class="field">
+    <label for="pqrs-mensaje">Detalle*</label>
+    <textarea id="pqrs-mensaje" name="mensaje" rows="5" required></textarea>
+</div>
+<button type="submit" class="sagicc-btn-primary">Enviar solicitud</button>',
+            'css'         => '.row { display:flex; gap:12px; flex-wrap:wrap; }
+.field { flex:1; min-width:220px; margin-bottom:14px; }
+.field label { display:block; font-size:14px; font-weight:600; margin-bottom:4px; }
+.field input,
+.field textarea,
+.field select { width:100%; padding:10px; border:1px solid #d6dae0; border-radius:4px; background:#fff; }
+.sagicc-btn-primary { background:#0b5fff; color:#fff; border:none; padding:12px 24px; border-radius:4px; cursor:pointer; font-weight:600; }',
+            'js'          => '',
+        ),
+        'marketing' => array(
+            'name'        => 'Formulario Marketing Lead',
+            'description' => 'Enfocado en captar leads de campa&ntilde;as digitales.',
+            'html'        => '<div class="field">
+    <label for="mkt-nombre">Nombre*</label>
+    <input type="text" id="mkt-nombre" name="nombre" required>
+</div>
+<div class="field">
+    <label for="mkt-apellido">Apellido*</label>
+    <input type="text" id="mkt-apellido" name="apellido" required>
+</div>
+<div class="field">
+    <label for="mkt-email">Correo corporativo*</label>
+    <input type="email" id="mkt-email" name="email" required>
+</div>
+<div class="field">
+    <label for="mkt-telefono">Tel&eacute;fono*</label>
+    <input type="text" id="mkt-telefono" name="telefono" required>
+</div>
+<div class="field">
+    <label for="mkt-empresa">Empresa</label>
+    <input type="text" id="mkt-empresa" name="empresa">
+</div>
+<div class="field">
+    <label for="mkt-servicio">Servicio de inter&eacute;s</label>
+    <select id="mkt-servicio" name="servicio_interes">
+        <option value="">Selecciona un servicio</option>
+        <option value="implementacion">Implementaci&oacute;n</option>
+        <option value="soporte">Soporte</option>
+        <option value="consultoria">Consultor&iacute;a</option>
+    </select>
+</div>
+<div class="field">
+    <label class="consent">
+        <input type="checkbox" name="acepta_marketing" value="si">
+        Deseo recibir informaci&oacute;n comercial.
+    </label>
+</div>
+<button type="submit" class="sagicc-btn-primary">Quiero m&aacute;s informaci&oacute;n</button>',
+            'css'         => '.field { margin-bottom:15px; }
+.field label { display:block; font-size:14px; margin-bottom:6px; font-weight:500; }
+.field input,
+.field textarea,
+.field select { width:100%; padding:11px; border:1px solid #cfd3d7; border-radius:8px; background:#fefefe; box-shadow:0 1px 2px rgba(15,23,42,.06) inset; }
+.consent { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:500; }
+.sagicc-btn-primary { width:100%; background-image:linear-gradient(135deg, #ff6b6b, #f06595); color:#fff; border:none; padding:14px; border-radius:30px; font-size:15px; font-weight:600; cursor:pointer; letter-spacing:.5px; }',
+            'js'          => '',
+        ),
+    );
+}
+
+/**
  * Generate arithmetic captcha data tied to a nonce.
  *
  * @param string $nonce Nonce used to hash the expected result.

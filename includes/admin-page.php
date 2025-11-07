@@ -38,6 +38,7 @@ function sagicc_forms_admin_page() {
     }
 
     $forms       = sagicc_forms_get_all();
+    $templates   = sagicc_forms_get_templates();
     $action      = isset( $_GET['form_action'] ) ? sanitize_key( wp_unslash( $_GET['form_action'] ) ) : 'list';
     $current_id  = isset( $_GET['form_id'] ) ? sanitize_key( wp_unslash( $_GET['form_id'] ) ) : '';
     $search_term = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
@@ -85,6 +86,8 @@ function sagicc_forms_admin_page() {
             $html      = isset( $_POST['form_html'] ) ? sagicc_forms_sanitize_form_html( wp_unslash( $_POST['form_html'] ) ) : '';
             $css       = isset( $_POST['form_css'] ) ? sanitize_textarea_field( wp_unslash( $_POST['form_css'] ) ) : '';
             $js        = isset( $_POST['form_js'] ) ? sanitize_textarea_field( wp_unslash( $_POST['form_js'] ) ) : '';
+            $form_mode = isset( $_POST['form_mode'] ) && 'visual' === $_POST['form_mode'] ? 'visual' : 'advanced';
+            $template_id = isset( $_POST['form_template_id'] ) ? sanitize_key( $_POST['form_template_id'] ) : '';
             $captcha_options = sagicc_forms_captcha_options();
             $captcha_type = isset( $_POST['form_captcha_type'] ) ? sanitize_key( $_POST['form_captcha_type'] ) : 'none';
             if ( ! isset( $captcha_options[ $captcha_type ] ) ) {
@@ -109,12 +112,26 @@ function sagicc_forms_admin_page() {
                     'type'    => 'error',
                     'message' => 'Debes especificar el endpoint de Sagicc.',
                 );
+            } elseif ( 'visual' === $form_mode && ( empty( $template_id ) || ! isset( $templates[ $template_id ] ) ) ) {
+                $notices[] = array(
+                    'type'    => 'error',
+                    'message' => 'Selecciona una plantilla para el Dise&ntilde;ador visual.',
+                );
             } elseif ( 'recaptcha_v3' === $captcha_type && ( empty( $recaptcha_site_key ) || empty( $recaptcha_secret_key ) ) ) {
                 $notices[] = array(
                     'type'    => 'error',
                     'message' => 'Para usar Google reCAPTCHA v3 debes configurar el Site Key y Secret Key.',
                 );
             } else {
+                if ( 'visual' === $form_mode ) {
+                    $selected_template = $templates[ $template_id ];
+                    $html = sagicc_forms_sanitize_form_html( $selected_template['html'] );
+                    $css  = sanitize_textarea_field( $selected_template['css'] );
+                    $js   = isset( $selected_template['js'] ) ? sanitize_textarea_field( $selected_template['js'] ) : '';
+                } else {
+                    $template_id = '';
+                }
+
                 $forms[ $form_id ] = array(
                     'name'     => $form_name ? $form_name : $form_id,
                     'token'    => $token,
@@ -127,6 +144,8 @@ function sagicc_forms_admin_page() {
                     'recaptcha_site_key'    => 'recaptcha_v3' === $captcha_type ? $recaptcha_site_key : '',
                     'recaptcha_secret_key'  => 'recaptcha_v3' === $captcha_type ? $recaptcha_secret_key : '',
                     'capture_page_url'      => $capture_page_url,
+                    'mode'                 => $form_mode,
+                    'template_id'          => $template_id,
                 );
 
                 sagicc_forms_save_all( $forms );
@@ -247,6 +266,9 @@ function sagicc_forms_admin_page() {
         }
         ?>
     </div>
+    <?php
+    $templates_json = wp_json_encode( $available_templates, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT );
+    ?>
     <script>
     (function(){
         document.addEventListener('click', function(event){
@@ -322,6 +344,11 @@ function sagicc_forms_admin_page() {
         const cssField = document.getElementById('form_css');
         const jsField = document.getElementById('form_js');
         const previewFrame = document.getElementById('sagicc-form-preview-frame');
+        const templatePanel = document.getElementById('sagicc-template-panel');
+        const templateInput = document.getElementById('form_template_id');
+        const formModeRadios = document.querySelectorAll('input[name="form_mode"]');
+        const sagiccTemplates = <?php echo $templates_json ? $templates_json : '{}'; ?>;
+        let currentMode = '<?php echo esc_js( $form_mode ); ?>';
 
         function updatePreview() {
             if (!previewFrame || !htmlField) {
@@ -355,6 +382,98 @@ ${js}
             }
             field.addEventListener('input', updatePreview);
         });
+
+        function highlightTemplate(templateId) {
+            document.querySelectorAll('.sagicc-template-card').forEach(function(card){
+                if (!card.dataset.templateId) {
+                    return;
+                }
+                card.classList.toggle('is-selected', card.dataset.templateId === templateId);
+            });
+        }
+
+        function applyTemplate(templateId) {
+            if (!sagiccTemplates || !sagiccTemplates[ templateId ]) {
+                return;
+            }
+            const template = sagiccTemplates[ templateId ];
+            if (htmlField) {
+                htmlField.value = template.html || '';
+            }
+            if (cssField) {
+                cssField.value = template.css || '';
+            }
+            if (jsField) {
+                jsField.value = template.js || '';
+            }
+            if (templateInput) {
+                templateInput.value = templateId;
+            }
+            highlightTemplate(templateId);
+            updatePreview();
+        }
+
+        function ensureTemplateSelected() {
+            if (!templateInput || !sagiccTemplates) {
+                return;
+            }
+            if (templateInput.value && sagiccTemplates[ templateInput.value ]) {
+                highlightTemplate(templateInput.value);
+                return;
+            }
+            const templateKeys = Object.keys(sagiccTemplates);
+            if (templateKeys.length) {
+                applyTemplate(templateKeys[0]);
+            }
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            if (templatePanel) {
+                templatePanel.style.display = mode === 'visual' ? '' : 'none';
+            }
+            document.querySelectorAll('.sagicc-code-row').forEach(function(row){
+                row.style.display = mode === 'visual' ? 'none' : '';
+            });
+            if ('visual' === mode) {
+                ensureTemplateSelected();
+            } else if (templateInput) {
+                templateInput.value = '';
+                highlightTemplate('');
+            }
+        }
+
+        formModeRadios.forEach(function(radio){
+            radio.addEventListener('change', function(){
+                setMode(radio.value);
+            });
+        });
+
+        document.querySelectorAll('.sagicc-apply-template').forEach(function(button){
+            button.addEventListener('click', function(event){
+                event.preventDefault();
+                if (currentMode !== 'visual') {
+                    setMode('visual');
+                }
+                applyTemplate(button.dataset.templateId);
+            });
+        });
+
+        document.querySelectorAll('.sagicc-template-card').forEach(function(card){
+            card.addEventListener('click', function(event){
+                if (event.target.closest('.sagicc-apply-template')) {
+                    return;
+                }
+                if (currentMode !== 'visual') {
+                    setMode('visual');
+                }
+                if (card.dataset.templateId) {
+                    applyTemplate(card.dataset.templateId);
+                }
+            });
+        });
+
+        setMode(currentMode);
         updatePreview();
     })();
     </script>
@@ -537,6 +656,9 @@ function sagicc_forms_render_form_editor( $current_id, $editing ) {
     $recaptcha_site_key   = $editing['recaptcha_site_key'] ?? '';
     $recaptcha_secret_key = $editing['recaptcha_secret_key'] ?? '';
     $capture_page_url     = ! empty( $editing['capture_page_url'] );
+    $form_mode            = $editing['mode'] ?? 'advanced';
+    $selected_template_id = $editing['template_id'] ?? '';
+    $available_templates  = sagicc_forms_get_templates();
     $recaptcha_fields_style = 'recaptcha_v3' === $selected_captcha ? '' : 'display:none;';
 
     ?>
@@ -560,6 +682,20 @@ function sagicc_forms_render_form_editor( $current_id, $editing ) {
                 </td>
             </tr>
             <tr>
+                <th scope="row">Modo de configuraci&oacute;n</th>
+                <td>
+                    <label style="display:block;margin-bottom:6px;">
+                        <input type="radio" name="form_mode" value="visual" <?php checked( $form_mode, 'visual' ); ?>>
+                        Dise&ntilde;ador visual (plantillas guiadas)
+                    </label>
+                    <label style="display:block;">
+                        <input type="radio" name="form_mode" value="advanced" <?php checked( $form_mode, 'advanced' ); ?>>
+                        Editor avanzado (HTML / CSS / JS)
+                    </label>
+                    <p class="description">Elige si deseas partir de una plantilla predefinida o editar el c&oacute;digo del formulario manualmente.</p>
+                </td>
+            </tr>
+            <tr>
                 <th scope="row"><label for="form_token">Token de Sagicc</label></th>
                 <td>
                     <input type="text" name="form_token" id="form_token" value="<?php echo isset( $editing['token'] ) ? esc_attr( $editing['token'] ) : ''; ?>" class="regular-text" required>
@@ -573,7 +709,7 @@ function sagicc_forms_render_form_editor( $current_id, $editing ) {
                     <p class="description">URL completa a la que se enviar&aacute; el formulario (obligatoria).</p>
                 </td>
             </tr>
-            <tr>
+            <tr class="sagicc-code-row">
                 <th scope="row"><label for="form_html">HTML interno del formulario</label></th>
                 <td>
                     <textarea name="form_html" id="form_html" rows="12" class="large-text code"><?php echo isset( $editing['html'] ) ? esc_textarea( $editing['html'] ) : ''; ?></textarea>
@@ -610,14 +746,14 @@ function sagicc_forms_render_form_editor( $current_id, $editing ) {
                     </details>
                 </td>
             </tr>
-            <tr>
+            <tr class="sagicc-code-row">
                 <th scope="row"><label for="form_css">CSS personalizado</label></th>
                 <td>
                     <textarea name="form_css" id="form_css" rows="5" class="large-text code"><?php echo isset( $editing['css'] ) ? esc_textarea( $editing['css'] ) : ''; ?></textarea>
                     <p class="description">Opcional. Se insertar&aacute; dentro de <code>&lt;style&gt;</code> antes del formulario.</p>
                 </td>
             </tr>
-            <tr>
+            <tr class="sagicc-code-row">
                 <th scope="row"><label for="form_js">JavaScript personalizado</label></th>
                 <td>
                     <textarea name="form_js" id="form_js" rows="5" class="large-text code"><?php echo isset( $editing['js'] ) ? esc_textarea( $editing['js'] ) : ''; ?></textarea>
@@ -658,6 +794,34 @@ function sagicc_forms_render_form_editor( $current_id, $editing ) {
                 </td>
             </tr>
         </table>
+        <input type="hidden" name="form_template_id" id="form_template_id" value="<?php echo esc_attr( $selected_template_id ); ?>">
+        <?php if ( ! empty( $available_templates ) ) : ?>
+            <div class="sagicc-template-panel" id="sagicc-template-panel" style="<?php echo 'visual' === $form_mode ? '' : 'display:none;'; ?>">
+                <style>
+                    .sagicc-template-grid { display:flex; flex-wrap:wrap; gap:16px; margin:12px 0 20px; }
+                    .sagicc-template-card { flex:1 1 260px; border:1px solid #dcdfe5; border-radius:8px; padding:16px; background:#fff; position:relative; }
+                    .sagicc-template-card.is-selected { border-color:#2a3491; box-shadow:0 0 0 2px rgba(42,52,145,.15); }
+                    .sagicc-template-card__preview { margin-top:12px; background:#f6f7f7; padding:10px; border-radius:6px; max-height:180px; overflow:auto; }
+                    .sagicc-template-card__actions { margin-top:12px; display:flex; justify-content:flex-end; }
+                </style>
+                <h3>Biblioteca de plantillas</h3>
+                <p>Selecciona un dise&ntilde;o base. Puedes ampliarlo m&aacute;s adelante duplicando la plantilla.</p>
+                <div class="sagicc-template-grid">
+                    <?php foreach ( $available_templates as $tpl_id => $tpl_config ) : ?>
+                        <div class="sagicc-template-card <?php echo ( 'visual' === $form_mode && $selected_template_id === $tpl_id ) ? 'is-selected' : ''; ?>" data-template-id="<?php echo esc_attr( $tpl_id ); ?>">
+                            <strong><?php echo esc_html( $tpl_config['name'] ); ?></strong>
+                            <p><?php echo esc_html( $tpl_config['description'] ); ?></p>
+                            <div class="sagicc-template-card__preview">
+                                <?php echo wp_kses_post( $tpl_config['html'] ); ?>
+                            </div>
+                            <div class="sagicc-template-card__actions">
+                                <button type="button" class="button button-secondary sagicc-apply-template" data-template-id="<?php echo esc_attr( $tpl_id ); ?>">Aplicar</button>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php endif; ?>
 
         <?php submit_button( $editing ? 'Guardar cambios' : 'Crear formulario' ); ?>
     </form>
