@@ -344,9 +344,13 @@ function sagicc_forms_admin_page() {
         const cssField = document.getElementById('form_css');
         const jsField = document.getElementById('form_js');
         const previewFrame = document.getElementById('sagicc-form-preview-frame');
+        const previewWrapper = document.getElementById('sagicc-preview-wrapper');
+        const fullscreenBtn = document.getElementById('sagicc-preview-fullscreen-btn');
+        const exitFullscreenBtn = document.getElementById('sagicc-preview-exit-btn');
         const templatePanel = document.getElementById('sagicc-template-panel');
         const templateInput = document.getElementById('form_template_id');
         const formModeRadios = document.querySelectorAll('input[name="form_mode"]');
+        const modeTabs = document.querySelectorAll('.sagicc-mode-tabs .nav-tab');
         const sagiccTemplates = <?php echo $templates_json ? $templates_json : '{}'; ?>;
         let currentMode = '<?php echo esc_js( $form_mode ); ?>';
 
@@ -443,9 +447,31 @@ ${js}
             }
         }
 
+        function updateModeInputs(mode) {
+            if (document.getElementById('form_mode')) {
+                document.getElementById('form_mode').value = mode;
+            }
+            formModeRadios.forEach(function(radio){
+                radio.checked = radio.value === mode;
+            });
+            modeTabs.forEach(function(tab){
+                tab.classList.toggle('nav-tab-active', tab.dataset.sagiccMode === mode);
+            });
+        }
+
         formModeRadios.forEach(function(radio){
             radio.addEventListener('change', function(){
                 setMode(radio.value);
+                updateModeInputs(radio.value);
+            });
+        });
+
+        modeTabs.forEach(function(tab){
+            tab.addEventListener('click', function(event){
+                event.preventDefault();
+                const newMode = tab.dataset.sagiccMode;
+                setMode(newMode);
+                updateModeInputs(newMode);
             });
         });
 
@@ -473,7 +499,49 @@ ${js}
             });
         });
 
+        function enterFullscreen() {
+            if (!previewWrapper) {
+                return;
+            }
+            previewWrapper.classList.add('is-fullscreen');
+            document.body.classList.add('sagicc-preview-lock');
+            if (fullscreenBtn) {
+                fullscreenBtn.style.display = 'none';
+            }
+            if (exitFullscreenBtn) {
+                exitFullscreenBtn.style.display = 'block';
+            }
+        }
+
+        function exitFullscreen() {
+            if (!previewWrapper) {
+                return;
+            }
+            previewWrapper.classList.remove('is-fullscreen');
+            document.body.classList.remove('sagicc-preview-lock');
+            if (fullscreenBtn) {
+                fullscreenBtn.style.display = 'inline-block';
+            }
+            if (exitFullscreenBtn) {
+                exitFullscreenBtn.style.display = 'none';
+            }
+        }
+
+        if (fullscreenBtn) {
+            fullscreenBtn.addEventListener('click', function(event){
+                event.preventDefault();
+                enterFullscreen();
+            });
+        }
+        if (exitFullscreenBtn) {
+            exitFullscreenBtn.addEventListener('click', function(event){
+                event.preventDefault();
+                exitFullscreen();
+            });
+        }
+
         setMode(currentMode);
+        updateModeInputs(currentMode);
         updatePreview();
     })();
     </script>
@@ -656,7 +724,7 @@ function sagicc_forms_render_form_editor( $current_id, $editing ) {
     $recaptcha_site_key   = $editing['recaptcha_site_key'] ?? '';
     $recaptcha_secret_key = $editing['recaptcha_secret_key'] ?? '';
     $capture_page_url     = ! empty( $editing['capture_page_url'] );
-    $form_mode            = $editing['mode'] ?? 'advanced';
+    $form_mode            = $editing['mode'] ?? 'visual';
     $selected_template_id = $editing['template_id'] ?? '';
     $available_templates  = sagicc_forms_get_templates();
     $recaptcha_fields_style = 'recaptcha_v3' === $selected_captcha ? '' : 'display:none;';
@@ -684,15 +752,12 @@ function sagicc_forms_render_form_editor( $current_id, $editing ) {
             <tr>
                 <th scope="row">Modo de configuraci&oacute;n</th>
                 <td>
-                    <label style="display:block;margin-bottom:6px;">
-                        <input type="radio" name="form_mode" value="visual" <?php checked( $form_mode, 'visual' ); ?>>
-                        Dise&ntilde;ador visual (plantillas guiadas)
-                    </label>
-                    <label style="display:block;">
-                        <input type="radio" name="form_mode" value="advanced" <?php checked( $form_mode, 'advanced' ); ?>>
-                        Editor avanzado (HTML / CSS / JS)
-                    </label>
-                    <p class="description">Elige si deseas partir de una plantilla predefinida o editar el c&oacute;digo del formulario manualmente.</p>
+                    <div class="nav-tab-wrapper sagicc-mode-tabs">
+                        <a href="#" class="nav-tab <?php echo 'visual' === $form_mode ? 'nav-tab-active' : ''; ?>" data-sagicc-mode="visual">Dise&ntilde;ador visual (plantillas guiadas)</a>
+                        <a href="#" class="nav-tab <?php echo 'advanced' === $form_mode ? 'nav-tab-active' : ''; ?>" data-sagicc-mode="advanced">Editor avanzado (HTML / CSS / JS)</a>
+                    </div>
+                    <input type="hidden" name="form_mode" id="form_mode" value="<?php echo esc_attr( $form_mode ); ?>">
+                    <p class="description">Selecciona el flujo de trabajo deseado. Puedes cambiar de modo en cualquier momento.</p>
                 </td>
             </tr>
             <tr>
@@ -709,7 +774,7 @@ function sagicc_forms_render_form_editor( $current_id, $editing ) {
                     <p class="description">URL completa a la que se enviar&aacute; el formulario (obligatoria).</p>
                 </td>
             </tr>
-            <tr class="sagicc-code-row">
+            <tr class="sagicc-code-row" style="<?php echo 'visual' === $form_mode ? 'display:none;' : ''; ?>">
                 <th scope="row"><label for="form_html">HTML interno del formulario</label></th>
                 <td>
                     <textarea name="form_html" id="form_html" rows="12" class="large-text code"><?php echo isset( $editing['html'] ) ? esc_textarea( $editing['html'] ) : ''; ?></textarea>
@@ -746,14 +811,14 @@ function sagicc_forms_render_form_editor( $current_id, $editing ) {
                     </details>
                 </td>
             </tr>
-            <tr class="sagicc-code-row">
+            <tr class="sagicc-code-row" style="<?php echo 'visual' === $form_mode ? 'display:none;' : ''; ?>">
                 <th scope="row"><label for="form_css">CSS personalizado</label></th>
                 <td>
                     <textarea name="form_css" id="form_css" rows="5" class="large-text code"><?php echo isset( $editing['css'] ) ? esc_textarea( $editing['css'] ) : ''; ?></textarea>
                     <p class="description">Opcional. Se insertar&aacute; dentro de <code>&lt;style&gt;</code> antes del formulario.</p>
                 </td>
             </tr>
-            <tr class="sagicc-code-row">
+            <tr class="sagicc-code-row" style="<?php echo 'visual' === $form_mode ? 'display:none;' : ''; ?>">
                 <th scope="row"><label for="form_js">JavaScript personalizado</label></th>
                 <td>
                     <textarea name="form_js" id="form_js" rows="5" class="large-text code"><?php echo isset( $editing['js'] ) ? esc_textarea( $editing['js'] ) : ''; ?></textarea>
@@ -799,21 +864,18 @@ function sagicc_forms_render_form_editor( $current_id, $editing ) {
             <div class="sagicc-template-panel" id="sagicc-template-panel" style="<?php echo 'visual' === $form_mode ? '' : 'display:none;'; ?>">
                 <style>
                     .sagicc-template-grid { display:flex; flex-wrap:wrap; gap:16px; margin:12px 0 20px; }
-                    .sagicc-template-card { flex:1 1 260px; border:1px solid #dcdfe5; border-radius:8px; padding:16px; background:#fff; position:relative; }
-                    .sagicc-template-card.is-selected { border-color:#2a3491; box-shadow:0 0 0 2px rgba(42,52,145,.15); }
-                    .sagicc-template-card__preview { margin-top:12px; background:#f6f7f7; padding:10px; border-radius:6px; max-height:180px; overflow:auto; }
+                    .sagicc-template-card { flex:1 1 260px; border:1px solid #dcdfe5; border-radius:8px; padding:16px; background:#fff; position:relative; display:flex; flex-direction:column; justify-content:space-between; }
+                    .sagicc-template-card.is-selected { border-color:#2a3491; box-shadow:0 0 0 2px rgba(42,52,145,.15); background:#f5f7ff; }
                     .sagicc-template-card__actions { margin-top:12px; display:flex; justify-content:flex-end; }
+                    .sagicc-template-card strong { font-size:15px; }
                 </style>
                 <h3>Biblioteca de plantillas</h3>
-                <p>Selecciona un dise&ntilde;o base. Puedes ampliarlo m&aacute;s adelante duplicando la plantilla.</p>
+                <p>Selecciona un dise&ntilde;o base. Puedes afinarlo en la vista previa y, si lo necesitas, pasar al editor avanzado.</p>
                 <div class="sagicc-template-grid">
                     <?php foreach ( $available_templates as $tpl_id => $tpl_config ) : ?>
                         <div class="sagicc-template-card <?php echo ( 'visual' === $form_mode && $selected_template_id === $tpl_id ) ? 'is-selected' : ''; ?>" data-template-id="<?php echo esc_attr( $tpl_id ); ?>">
                             <strong><?php echo esc_html( $tpl_config['name'] ); ?></strong>
                             <p><?php echo esc_html( $tpl_config['description'] ); ?></p>
-                            <div class="sagicc-template-card__preview">
-                                <?php echo wp_kses_post( $tpl_config['html'] ); ?>
-                            </div>
                             <div class="sagicc-template-card__actions">
                                 <button type="button" class="button button-secondary sagicc-apply-template" data-template-id="<?php echo esc_attr( $tpl_id ); ?>">Aplicar</button>
                             </div>
@@ -826,10 +888,38 @@ function sagicc_forms_render_form_editor( $current_id, $editing ) {
         <?php submit_button( $editing ? 'Guardar cambios' : 'Crear formulario' ); ?>
     </form>
 
-    <div class="sagicc-form-preview-wrapper" style="margin-top:30px;">
-        <h3>Vista previa en tiempo real</h3>
-        <p>Muestra tu HTML/CSS/JS dentro de un iframe aislado. No incluye la l&oacute;gica del shortcode.</p>
+    <div class="sagicc-form-preview-wrapper" id="sagicc-preview-wrapper" style="margin-top:30px; position:relative;">
+        <div class="sagicc-preview-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <h3>Vista previa en tiempo real</h3>
+                <p>Muestra tu HTML/CSS/JS dentro de un iframe aislado. No incluye la l&oacute;gica del shortcode.</p>
+            </div>
+            <div>
+                <button type="button" class="button button-secondary" id="sagicc-preview-fullscreen-btn">Ver en pantalla completa</button>
+            </div>
+        </div>
         <iframe id="sagicc-form-preview-frame" title="Vista previa del formulario" style="width:100%;min-height:320px;border:1px solid #ccd0d4;border-radius:4px;background:#fff;"></iframe>
+        <button type="button" class="button sagicc-preview-exit" id="sagicc-preview-exit-btn" style="display:none; position:absolute; top:16px; right:16px;">Cerrar vista completa</button>
     </div>
+    <style>
+        body.sagicc-preview-lock { overflow:hidden; }
+        .sagicc-form-preview-wrapper.is-fullscreen {
+            position:fixed !important;
+            top:0;
+            left:0;
+            right:0;
+            bottom:0;
+            background:#fff;
+            z-index:100000;
+            padding:32px;
+        }
+        .sagicc-form-preview-wrapper.is-fullscreen iframe {
+            height:100%;
+            min-height:0;
+        }
+        .sagicc-form-preview-wrapper.is-fullscreen .sagicc-preview-exit {
+            display:block !important;
+        }
+    </style>
     <?php
 }
