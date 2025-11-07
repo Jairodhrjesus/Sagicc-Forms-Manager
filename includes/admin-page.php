@@ -351,7 +351,7 @@ function sagicc_forms_admin_page() {
         const templateInput = document.getElementById('form_template_id');
         const formModeRadios = document.querySelectorAll('input[name="form_mode"]');
         const modeTabs = document.querySelectorAll('.sagicc-mode-tabs .nav-tab');
-        const sagiccTemplates = <?php echo $templates_json ? $templates_json : '{}'; ?>;
+        const templateCards = document.querySelectorAll('.sagicc-template-card');
         let currentMode = '<?php echo esc_js( $form_mode ); ?>';
 
         function updatePreview() {
@@ -388,7 +388,7 @@ ${js}
         });
 
         function highlightTemplate(templateId) {
-            document.querySelectorAll('.sagicc-template-card').forEach(function(card){
+            templateCards.forEach(function(card){
                 if (!card.dataset.templateId) {
                     return;
                 }
@@ -396,38 +396,63 @@ ${js}
             });
         }
 
-        function applyTemplate(templateId) {
-            if (!sagiccTemplates || !sagiccTemplates[ templateId ]) {
+        function getTemplatePayloadFromCard(card) {
+            if (!card) {
+                return null;
+            }
+            const html = card.querySelector('.sagicc-template-html') ? card.querySelector('.sagicc-template-html').value : '';
+            const css  = card.querySelector('.sagicc-template-css') ? card.querySelector('.sagicc-template-css').value : '';
+            const js   = card.querySelector('.sagicc-template-js') ? card.querySelector('.sagicc-template-js').value : '';
+            return {
+                id: card.dataset.templateId || '',
+                html: html || '',
+                css: css || '',
+                js: js || '',
+            };
+        }
+
+        function applyTemplateFromCard(card) {
+            const payload = getTemplatePayloadFromCard(card);
+            if (!payload) {
                 return;
             }
-            const template = sagiccTemplates[ templateId ];
             if (htmlField) {
-                htmlField.value = template.html || '';
+                htmlField.value = payload.html;
             }
             if (cssField) {
-                cssField.value = template.css || '';
+                cssField.value = payload.css;
             }
             if (jsField) {
-                jsField.value = template.js || '';
+                jsField.value = payload.js;
             }
             if (templateInput) {
-                templateInput.value = templateId;
+                templateInput.value = payload.id;
             }
-            highlightTemplate(templateId);
+            highlightTemplate(payload.id);
             updatePreview();
         }
 
-        function ensureTemplateSelected() {
-            if (!templateInput || !sagiccTemplates) {
+        function applyTemplateById(templateId) {
+            const card = document.querySelector(`.sagicc-template-card[data-template-id="${templateId}"]`);
+            if (!card) {
                 return;
             }
-            if (templateInput.value && sagiccTemplates[ templateInput.value ]) {
+            applyTemplateFromCard(card);
+        }
+
+        function ensureTemplateSelected() {
+            if (!templateInput) {
+                return;
+            }
+            if (templateInput.value) {
                 highlightTemplate(templateInput.value);
                 return;
             }
-            const templateKeys = Object.keys(sagiccTemplates);
-            if (templateKeys.length) {
-                applyTemplate(templateKeys[0]);
+            if (htmlField && htmlField.value.trim()) {
+                return;
+            }
+            if (templateCards.length) {
+                applyTemplateFromCard(templateCards[0]);
             }
         }
 
@@ -441,8 +466,7 @@ ${js}
             });
             if ('visual' === mode) {
                 ensureTemplateSelected();
-            } else if (templateInput) {
-                templateInput.value = '';
+            } else {
                 highlightTemplate('');
             }
         }
@@ -480,22 +504,23 @@ ${js}
                 event.preventDefault();
                 if (currentMode !== 'visual') {
                     setMode('visual');
+                    updateModeInputs('visual');
                 }
-                applyTemplate(button.dataset.templateId);
+                const card = button.closest('.sagicc-template-card');
+                applyTemplateFromCard(card);
             });
         });
 
-        document.querySelectorAll('.sagicc-template-card').forEach(function(card){
+        templateCards.forEach(function(card){
             card.addEventListener('click', function(event){
                 if (event.target.closest('.sagicc-apply-template')) {
                     return;
                 }
                 if (currentMode !== 'visual') {
                     setMode('visual');
+                    updateModeInputs('visual');
                 }
-                if (card.dataset.templateId) {
-                    applyTemplate(card.dataset.templateId);
-                }
+                applyTemplateFromCard(card);
             });
         });
 
@@ -879,6 +904,9 @@ function sagicc_forms_render_form_editor( $current_id, $editing ) {
                             <div class="sagicc-template-card__actions">
                                 <button type="button" class="button button-secondary sagicc-apply-template" data-template-id="<?php echo esc_attr( $tpl_id ); ?>">Aplicar</button>
                             </div>
+                            <textarea class="sagicc-template-html" hidden><?php echo esc_textarea( $tpl_config['html'] ); ?></textarea>
+                            <textarea class="sagicc-template-css" hidden><?php echo esc_textarea( $tpl_config['css'] ); ?></textarea>
+                            <textarea class="sagicc-template-js" hidden><?php echo esc_textarea( $tpl_config['js'] ?? '' ); ?></textarea>
                         </div>
                     <?php endforeach; ?>
                 </div>
