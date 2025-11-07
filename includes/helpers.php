@@ -147,8 +147,12 @@ function sagicc_forms_get_templates() {
             'name'        => 'Formulario Base',
             'description' => 'Campos esenciales para contacto general.',
             'html'        => '<div class="field">
-    <label for="base-nombre">Nombre completo*</label>
+    <label for="base-nombre">Nombre*</label>
     <input type="text" id="base-nombre" name="nombre" required>
+</div>
+<div class="field">
+    <label for="base-apellido">Apellido*</label>
+    <input type="text" id="base-apellido" name="apellido" required>
 </div>
 <div class="field">
     <label for="base-email">Correo*</label>

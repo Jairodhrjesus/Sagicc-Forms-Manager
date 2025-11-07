@@ -895,7 +895,7 @@ function sagicc_forms_render_form_editor( $current_id, $editing ) {
                     .sagicc-template-card strong { font-size:15px; }
                 </style>
                 <h3>Biblioteca de plantillas</h3>
-                <p>Selecciona un dise&ntilde;o base. Puedes afinarlo en la vista previa y, si lo necesitas, pasar al editor avanzado.</p>
+                <p>Selecciona un dise&ntilde;o base. Todas las plantillas incluyen los campos obligatorios (Nombre, Apellido, Correo, Tel&eacute;fono); puedes afinarlas en la vista previa o pasar al editor avanzado cuando lo requieras.</p>
                 <div class="sagicc-template-grid">
                     <?php foreach ( $available_templates as $tpl_id => $tpl_config ) : ?>
                         <div class="sagicc-template-card <?php echo ( 'visual' === $form_mode && $selected_template_id === $tpl_id ) ? 'is-selected' : ''; ?>" data-template-id="<?php echo esc_attr( $tpl_id ); ?>">
