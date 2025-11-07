@@ -87,6 +87,9 @@ function sagicc_form_shortcode( $atts ) {
             ?>
             <input type="hidden" name="<?php echo esc_attr( $utm_field ); ?>" value="<?php echo esc_attr( $utm_value ); ?>">
         <?php endforeach; ?>
+        <?php if ( ! empty( $config['capture_page_url'] ) ) : ?>
+            <input type="hidden" name="sagicc_page_url" value="">
+        <?php endif; ?>
 
         <?php
         // HTML que el usuario pego (interno del formulario).
@@ -126,6 +129,7 @@ function sagicc_form_shortcode( $atts ) {
         const captchaQuestionNode = form ? form.querySelector('[data-sagicc-captcha-question]') : null;
         const securityEndpoint = '<?php echo esc_url_raw( $security_endpoint ); ?>';
         const utmFields = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm_id'];
+        const pageUrlInput = form ? form.querySelector('[name="sagicc_page_url"]') : null;
 
         if (!form) return;
 
@@ -194,6 +198,13 @@ function sagicc_form_shortcode( $atts ) {
             });
         }
         populateUtmFields();
+        setPageUrlValue();
+
+        function setPageUrlValue() {
+            if (pageUrlInput && typeof window !== 'undefined') {
+                pageUrlInput.value = window.location.href;
+            }
+        }
 
         function sendForm() {
             const fd = new FormData(form);
@@ -224,6 +235,7 @@ function sagicc_form_shortcode( $atts ) {
             e.preventDefault();
 
             refreshSecurityFields().then(function(){
+                setPageUrlValue();
                 if (captchaType === 'recaptcha_v3' && recaptchaSiteKey) {
                     if (typeof grecaptcha === 'undefined' || !grecaptcha.execute) {
                         setMessage('Error: reCAPTCHA no está disponible.', false);

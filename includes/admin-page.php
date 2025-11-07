@@ -92,6 +92,7 @@ function sagicc_forms_admin_page() {
             }
             $recaptcha_site_key   = isset( $_POST['form_recaptcha_site_key'] ) ? sanitize_text_field( wp_unslash( $_POST['form_recaptcha_site_key'] ) ) : '';
             $recaptcha_secret_key = isset( $_POST['form_recaptcha_secret_key'] ) ? sanitize_text_field( wp_unslash( $_POST['form_recaptcha_secret_key'] ) ) : '';
+            $capture_page_url     = ! empty( $_POST['form_capture_page_url'] ) ? 1 : 0;
 
             if ( empty( $form_id ) ) {
                 $notices[] = array(
@@ -125,6 +126,7 @@ function sagicc_forms_admin_page() {
                     'captcha_type'          => $captcha_type,
                     'recaptcha_site_key'    => 'recaptcha_v3' === $captcha_type ? $recaptcha_site_key : '',
                     'recaptcha_secret_key'  => 'recaptcha_v3' === $captcha_type ? $recaptcha_secret_key : '',
+                    'capture_page_url'      => $capture_page_url,
                 );
 
                 sagicc_forms_save_all( $forms );
@@ -315,6 +317,45 @@ function sagicc_forms_admin_page() {
             captchaSelect.addEventListener('change', toggleRecaptchaFields);
             toggleRecaptchaFields();
         }
+
+        const htmlField = document.getElementById('form_html');
+        const cssField = document.getElementById('form_css');
+        const jsField = document.getElementById('form_js');
+        const previewFrame = document.getElementById('sagicc-form-preview-frame');
+
+        function updatePreview() {
+            if (!previewFrame || !htmlField) {
+                return;
+            }
+            const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+            const css = cssField ? cssField.value : '';
+            const html = htmlField.value || '';
+            const js = jsField ? jsField.value : '';
+            const template = `
+<!doctype html>
+<html>
+<head>
+<style>${css}</style>
+</head>
+<body>
+${html}
+<script>
+${js}
+</scr` + `ipt>
+</body>
+</html>`;
+            doc.open();
+            doc.write(template);
+            doc.close();
+        }
+
+        [htmlField, cssField, jsField].forEach(function(field){
+            if (!field) {
+                return;
+            }
+            field.addEventListener('input', updatePreview);
+        });
+        updatePreview();
     })();
     </script>
     <?php
@@ -395,13 +436,14 @@ function sagicc_forms_render_list_table( $forms, $search_term ) {
                 <th scope="col">ID</th>
                 <th scope="col">Endpoint</th>
                 <th scope="col">Shortcode</th>
+                <th scope="col">URL origen</th>
                 <th scope="col">Captcha</th>
             </tr>
             </thead>
             <tbody>
             <?php if ( empty( $forms ) ) : ?>
                 <tr>
-                    <td colspan="6">A&uacute;n no has creado formularios. Usa el bot&oacute;n "Add Form" para empezar.</td>
+                    <td colspan="7">A&uacute;n no has creado formularios. Usa el bot&oacute;n "Add Form" para empezar.</td>
                 </tr>
             <?php else : ?>
                 <?php foreach ( $forms as $fid => $form_config ) : ?>
@@ -444,6 +486,7 @@ function sagicc_forms_render_list_table( $forms, $search_term ) {
                             <code id="sagicc-shortcode-<?php echo esc_attr( $fid ); ?>">[sagicc_form id="<?php echo esc_html( $fid ); ?>"]</code>
                             <button type="button" class="button button-small sagicc-copy-shortcode" data-shortcode="[sagicc_form id='<?php echo esc_attr( $fid ); ?>']">Copiar</button>
                         </td>
+                        <td><?php echo ! empty( $form_config['capture_page_url'] ) ? 'Registrada' : '&mdash;'; ?></td>
                         <td>
                             <?php
                             $type    = sagicc_forms_resolve_captcha_type( $form_config );
@@ -493,6 +536,7 @@ function sagicc_forms_render_form_editor( $current_id, $editing ) {
     }
     $recaptcha_site_key   = $editing['recaptcha_site_key'] ?? '';
     $recaptcha_secret_key = $editing['recaptcha_secret_key'] ?? '';
+    $capture_page_url     = ! empty( $editing['capture_page_url'] );
     $recaptcha_fields_style = 'recaptcha_v3' === $selected_captcha ? '' : 'display:none;';
 
     ?>
@@ -603,9 +647,25 @@ function sagicc_forms_render_form_editor( $current_id, $editing ) {
                     </div>
                 </td>
             </tr>
+            <tr>
+                <th scope="row">URL de origen</th>
+                <td>
+                    <label for="form_capture_page_url">
+                        <input type="checkbox" name="form_capture_page_url" id="form_capture_page_url" value="1" <?php checked( $capture_page_url ); ?>>
+                        Incluir la URL actual de la p&aacute;gina como campo oculto (sagicc_page_url).
+                    </label>
+                    <p class="description">&Uacute;til para auditar desde qu&eacute; landing lleg&oacute; cada lead. Se captura en el navegador en el momento del env&iacute;o.</p>
+                </td>
+            </tr>
         </table>
 
         <?php submit_button( $editing ? 'Guardar cambios' : 'Crear formulario' ); ?>
     </form>
+
+    <div class="sagicc-form-preview-wrapper" style="margin-top:30px;">
+        <h3>Vista previa en tiempo real</h3>
+        <p>Muestra tu HTML/CSS/JS dentro de un iframe aislado. No incluye la l&oacute;gica del shortcode.</p>
+        <iframe id="sagicc-form-preview-frame" title="Vista previa del formulario" style="width:100%;min-height:320px;border:1px solid #ccd0d4;border-radius:4px;background:#fff;"></iframe>
+    </div>
     <?php
 }
